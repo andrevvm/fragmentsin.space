@@ -164,15 +164,13 @@
         scene.add( mirrorCubeCamera );
 
         var fogs = [
-          0xBDE7F7,
-          0xF7BDBD,
-          0xBDF7F3,
-          0xF7EFBD,
-          0xCBBDF7,
-          0xF2CBE8
+          0xc5fffe,
+          0xffc6c6,
+          0xff9b78,
+          0xc5fff1,
         ]
 
-        scene.fog = new THREE.Fog( fogs[0], 1, 25000 );
+        scene.fog = new THREE.Fog( 0xFFFFFF, 1, 25000 );
 
         //scene.add( new THREE.AmbientLight( 0xffffff ) );
 
@@ -233,14 +231,25 @@
 
         var objectTextures = [
           
-          textureLoader.load("textures/gold.jpg"),
-          textureLoader.load("textures/grey_granite.jpg"),
+          textureLoader.load("textures/copper.jpg"),
+          textureLoader.load("textures/black_granite.jpg"),
           textureLoader.load("textures/black_marble.jpg"),
-          textureLoader.load("textures/light_pink_marble.jpg"),
+          textureLoader.load("textures/dark_green_marble.jpg"),
+          textureLoader.load("textures/grey_marble.jpg"),
+          textureLoader.load("textures/grey_marble2.jpg"),
+          textureLoader.load("textures/ice_marble.jpg"),
           textureLoader.load("textures/pink_marble.jpg"),
+          textureLoader.load("textures/pink_marble2.jpg"),
+          textureLoader.load("textures/purple_marble.jpg"),
           textureLoader.load("textures/red_marble.jpg"),
 
         ];
+
+        for(var b = 0; b < objectTextures.length; b++) {
+          objectTextures[b].anisotropy = 5;
+          objectTextures[b].wrapS = objectTextures[b].wrapT = THREE.MirroredRepeatWrapping;
+          objectTextures[b].repeat.set( 1, 1 );
+        }
 
         var path = "textures/skybox/";
         var format = '.jpg';
@@ -267,7 +276,7 @@
         } );
 
         var goldMaterial = new THREE.MeshStandardMaterial( { 
-          color: 0xFFD742, 
+          color: 0xFFC59F, 
           map: objectTextures[0],
           roughness: 0.5, 
           metalness: 0.5,
@@ -281,6 +290,11 @@
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[3] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[4] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[5] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[6] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[7] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[8] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[9] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[10] } ),
           new THREE.MeshPhongMaterial( { 
             color: 0xDDDDFF,
             emissive: 0x000000,
@@ -290,7 +304,7 @@
             reflectivity: 0.6,
             shininess: 5,
             transparent: true,
-            opacity: 0.95
+            opacity: 0.97
           } )
         ];
 
@@ -298,24 +312,30 @@
           objectMaterials[1],
           objectMaterials[2],
           objectMaterials[4],
-          objectMaterials[5]
+          objectMaterials[5],
+          objectMaterials[6],
+          objectMaterials[7],
+          objectMaterials[8],
+          objectMaterials[9],
+          objectMaterials[10]
         ]
 
         shuffle(blockMaterials);
         shuffle(objectMaterials);
 
-        groundMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x201F22 } );
-
-        var groundTextures = [
-          textureLoader.load("textures/orange_stone.jpg"),
-          textureLoader.load("textures/black_marble.jpg"),
-          textureLoader.load("textures/grey_granite.jpg")
-        ];
+        groundMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x373B3E } );
 
         var groundMaterials = [
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: groundTextures[0] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: groundTextures[1] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: groundTextures[2] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[1] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[2] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[3] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[4] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[5] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[6] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[7] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[8] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[9] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[10] } ),
           groundMirror.material
         ]
 
@@ -339,7 +359,7 @@
 
         var boxShapes =  [
           new THREE.BoxGeometry( 300, 400, 60 ),
-          new THREE.CylinderGeometry( 0, 300, 360, 4 )
+          new THREE.CylinderGeometry( 0, 280, 360, 4 )
         ]
 
         shuffle(boxShapes);
@@ -349,6 +369,7 @@
 
         var meshGround = new THREE.Mesh( ground, groundMaterials[0] );
         meshGround.add( groundMirror );
+
 
         meshGround.rotation.x = - Math.PI / 2;
         meshGround.rotation.z = - Math.PI / 4;
@@ -372,22 +393,22 @@
                   type: "object"
                 }
               },
-              addObjects: function() {
-                for(var key in this.objects) {
-                  scene.add(this.objects[key].mesh);
-                }
-              },
               setPositions: function() {
-                this.objects.sphere.mesh.position.set(0,0,0);
-                this.objects.sphere.mesh.translateX(300);
-                this.objects.sphere.mesh.translateY(140);
 
+                if(this.rendered === true) {
+                  return false;
+                }
+
+                this.objects.sphere.mesh.geometry.translate(320,140,0);
+                
                 this.objects.block.mesh.rotation.y = - (Math.PI / 4) * 3;
                 this.objects.block.mesh.position.set(0,90,0);
 
-                this.objects.cone.mesh.position.set(250, 200, 250);
+                this.objects.cone.mesh.position.set(240, 200, 240);
                 this.objects.cone.mesh.rotation.z = - Math.PI / 10;
                 this.objects.cone.mesh.rotation.x = Math.PI;
+
+                this.rendered = true;
               },
               setMaterials: function() {
                 
@@ -417,21 +438,86 @@
                 this.objects.cone.mesh.rotation.x += 0.01;
                 this.objects.cone.mesh.position.y = 180 + Math.sin(time/500 - 280) * 120;
               },
-              init: function() {
-                this.addObjects();
-                this.setPositions();
-                this.setMaterials();
-              }
+              rendered: false
 
-            }
+            },
+            {
+              objects: {
+                block1: {
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 300, 400, 30 ) ),
+                  type: "block"
+                },
+                block2: {
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 300, 400, 30 ) ),
+                  type: "block"
+                },
+                rod: {
+                  mesh: new THREE.Mesh( new THREE.CylinderGeometry(8, 8, 400, 50) ),
+                  type: "object"
+                },
+                sphere: {
+                  mesh: new THREE.Mesh( new THREE.SphereGeometry(60, 40, 40) ),
+                  type: "object"
+                }
+                
+              },
+              setPositions: function() {
+                if(this.rendered === true) {
+                  return false;
+                }
+                this.objects.block1.mesh.position.set(350, 240, 50);
+                this.objects.block1.mesh.rotation.x = - Math.PI / 6;
+                this.objects.block1.mesh.rotation.y = Math.PI / 1.5;
+
+                this.objects.block2.mesh.position.set(-350, 240, 50);
+                this.objects.block2.mesh.rotation.x = - Math.PI / 12;
+                this.objects.block2.mesh.rotation.y = Math.PI / 3;
+
+                this.objects.rod.mesh.position.set(0,200,0);
+                this.objects.rod.mesh.rotation.x = Math.PI / 6;
+                this.objects.rod.mesh.rotation.z = Math.PI / 10;
+
+                
+                this.objects.sphere.mesh.geometry.translate(210,60,120);
+                
+                this.objects.sphere.mesh.position.set(-50, 240, 0);
+                
+                this.rendered = true;
+              },
+              setMaterials: function() {
+                             
+                this.objects.block1.mesh.material = blockMaterials[0];
+                this.objects.block2.mesh.material = blockMaterials[1];
+                this.objects.rod.mesh.material = objectMaterials[1];
+                this.objects.sphere.mesh.material = objectMaterials[2];
+
+                for(var key in this.objects) {
+                  this.objects[key].mesh.castShadow = true;
+                  this.objects[key].mesh.receiveShadow = true;
+                }
+
+              },
+              animations: function() {
+                this.objects.block1.mesh.position.y = 240 + Math.sin(time/500 - 280) * 20;
+                this.objects.block2.mesh.position.y = 240 + Math.sin(time/500) * 20;
+
+                this.objects.rod.mesh.rotation.y += 0.01;
+
+                this.objects.sphere.mesh.rotation.y -= 0.005;
+                this.objects.sphere.mesh.rotation.z -= 0.005;
+                // this.objects.block1.mesh.rotation.z = Math.PI / 20 + Math.cos(time/1000) / 1.5;
+                // this.objects.block1.mesh.rotation.x = Math.PI / 20 - Math.sin(time/1000) / 3;
+                // this.objects.block1.mesh.rotation.y = Math.PI / 2 - Math.sin(time/1000) / 2;
+              },
+              rendered: false
+
+            },
         ];
 
-        scenes[0].init();
-        setMaterials();
+        var comp = scenes[0];
 
         // RENDERER
 
-        renderer.setClearColor( scene.fog.color );
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 
@@ -444,7 +530,10 @@
         onRenderFcts.push(function(){
           time += 10;
           mirrorCubeCamera.rotation.y += 0.01;
-          scenes[0].animations();
+          for(var i = 0; i < scenes.length; i++) {
+            scenes[i].animations();
+          }
+          
         });
 
         // STATS1
@@ -455,7 +544,38 @@
         document.addEventListener( 'mousemove', onDocumentMouseMove, false );
         document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 
-        function setMaterials() {
+        for(var i = 0; i < scenes.length; i++) {
+          addObjects(scenes[i]);
+          scenes[i].setPositions();
+          hideObjects(scenes[i]);
+        }
+
+        sceneInit(comp);
+
+        function sceneInit(s) {
+          setMaterials(s);
+          showObjects(s);
+        }
+
+        function addObjects(s) {
+          for(var key in s.objects) {
+            scene.add(s.objects[key].mesh);
+          }
+        }
+
+        function showObjects(s) {
+          for(var key in s.objects) {
+            s.objects[key].mesh.visible = true;
+          }
+        }
+
+        function hideObjects(s) {
+          for(var key in s.objects) {
+            s.objects[key].mesh.visible = false;
+          }
+        }
+
+        function setMaterials(s) {
           shuffle(objectMaterials);
           shuffle(blockMaterials);
           shuffle(groundMaterials);
@@ -466,13 +586,16 @@
 
           renderer.setClearColor( fogs[0] );
 
-          scenes[0].setMaterials();
+          s.setMaterials();
           
         }
 
         function onDocumentMouseDown(event) {
 
-          setMaterials();
+          hideObjects(comp);
+          shuffle(scenes);
+          comp = scenes[0];
+          sceneInit(comp);
 
         }
 
