@@ -345,36 +345,43 @@
         shuffle(boxShapes);
 
         var ground = new THREE.BoxGeometry( 1000, 1000, 25 );
-        var box1 = boxShapes[0];
-        var sphere1 = new THREE.SphereGeometry( 90, 40, 40 );
-        var cone1 = new THREE.ConeGeometry( 70, 180, 50 );
         ground.translate(0,0,-100);
-        sphere1.translate(300,120,0);
-        cone1.translate(0,0,0);
 
         var meshGround = new THREE.Mesh( ground, groundMaterials[0] );
         meshGround.add( groundMirror );
 
         meshGround.rotation.x = - Math.PI / 2;
         meshGround.rotation.z = - Math.PI / 4;
+        meshGround.receiveShadow = true;
+        scene.add( meshGround );
 
-        var scenes = {
-            scene1: {
+        var scenes = [
+
+            {
               objects: {
                 block: {
-                  mesh: new THREE.Mesh( boxShapes[0], blockMaterials[0] ),
+                  mesh: new THREE.Mesh( boxShapes[0] ),
                   type: "block"
                 },
                 sphere: {          
-                  mesh: new THREE.Mesh( new THREE.SphereGeometry( 90, 40, 40 ), objectMaterials[0] ),
+                  mesh: new THREE.Mesh( new THREE.SphereGeometry( 90, 40, 40 ) ),
                   type: "object"
                 },
                 cone: {
-                  mesh: new THREE.Mesh( new THREE.ConeGeometry( 70, 180, 40 ), objectMaterials[1] ),
+                  mesh: new THREE.Mesh( new THREE.ConeGeometry( 70, 180, 40 ) ),
                   type: "object"
                 }
               },
-              positions: function() {
+              addObjects: function() {
+                for(var key in this.objects) {
+                  scene.add(this.objects[key].mesh);
+                }
+              },
+              setPositions: function() {
+                this.objects.sphere.mesh.position.set(0,0,0);
+                this.objects.sphere.mesh.translateX(300);
+                this.objects.sphere.mesh.translateY(140);
+
                 this.objects.block.mesh.rotation.y = - (Math.PI / 4) * 3;
                 this.objects.block.mesh.position.set(0,90,0);
 
@@ -383,62 +390,46 @@
                 this.objects.cone.mesh.rotation.x = Math.PI;
               },
               setMaterials: function() {
-                shuffle(objectMaterials);
-                shuffle(blockMaterials);
-                shuffle(groundMaterials);
-                shuffle(fogs);
-                shuffle(boxShapes);
-
-                meshGround.material = groundMaterials[0];
-
-                renderer.setClearColor( fogs[0] );
-
+                
                 this.objects.block.mesh.geometry = null;
                 this.objects.block.mesh.geometry = boxShapes[0];
              
                 this.objects.block.mesh.material = blockMaterials[0];
                 this.objects.sphere.mesh.material = objectMaterials[0];
                 this.objects.cone.mesh.material = objectMaterials[1];
+
+                this.objects.sphere.mesh.visible = false;
+                mirrorCubeCamera.updateCubeMap( renderer, scene );
+                mirrorCubeCamera.position.copy( this.objects.sphere.mesh.position );
+                this.objects.sphere.mesh.visible = true;
+
+
+                for(var key in this.objects) {
+                  this.objects[key].mesh.castShadow = true;
+                  this.objects[key].mesh.receiveShadow = true;
+                }
+
               },
-              
+              animations: function() {
+                this.objects.sphere.mesh.position.y = 0 + Math.sin(time/500) * 50;
+                this.objects.sphere.mesh.rotation.y += 0.01;
+                this.objects.cone.mesh.rotation.y += 0.02;
+                this.objects.cone.mesh.rotation.x += 0.01;
+                this.objects.cone.mesh.position.y = 180 + Math.sin(time/500 - 280) * 120;
+              },
+              init: function() {
+                this.addObjects();
+                this.setPositions();
+                this.setMaterials();
+              }
+
             }
-        };
+        ];
 
-        var meshBox1 = new THREE.Mesh( box1, blockMaterials[0] );
-        var meshSphere1 = new THREE.Mesh( sphere1, objectMaterials[1] );
-        var meshCone1 = new THREE.Mesh( cone1, objectMaterials[2] );
-
+        scenes[0].init();
         setMaterials();
 
-        meshBox1.rotation.y = - (Math.PI / 4) * 3;
-        meshBox1.position.set(0,90,0);
-
-        meshCone1.position.set(250, 200, 250);
-        meshCone1.rotation.z = - Math.PI / 10;
-        meshCone1.rotation.x = Math.PI;
-
-        
-
-        console.log(meshBox1);
-
-        scene.add( meshGround );
-        scene.add( meshBox1 );
-        scene.add( meshSphere1 );
-        scene.add( meshCone1 );
-
-        meshGround.receiveShadow = true;
-        meshBox1.castShadow = true;
-        meshSphere1.castShadow = true;
-        meshCone1.castShadow = true;
-        meshBox1.receiveShadow = true;
-
         // RENDERER
-
-        meshSphere1.visible = false;
-        mirrorCubeCamera.updateCubeMap( renderer, scene );
-        mirrorCubeCamera.position.copy( meshSphere1.position );
-        
-        meshSphere1.visible = true;
 
         renderer.setClearColor( scene.fog.color );
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -452,12 +443,8 @@
         //Mesh animations
         onRenderFcts.push(function(){
           time += 10;
-          meshSphere1.position.y = 0 + Math.sin(time/500) * 50;
-          meshSphere1.rotation.y += 0.01;
-          meshCone1.rotation.y += 0.02;
-          meshCone1.rotation.x += 0.01;
-          meshCone1.position.y = 180 + Math.sin(time/500 - 280) * 120;
           mirrorCubeCamera.rotation.y += 0.01;
+          scenes[0].animations();
         });
 
         // STATS1
@@ -475,18 +462,12 @@
           shuffle(fogs);
           shuffle(boxShapes);
 
+          meshGround.material = groundMaterials[0];
+
           renderer.setClearColor( fogs[0] );
 
-          meshBox1.geometry = null;
-          meshBox1.geometry = boxShapes[0];
-
-          meshGround.material = groundMaterials[0];
-          meshBox1.material = blockMaterials[0];
-          meshSphere1.material = objectMaterials[0];
-          meshCone1.material = objectMaterials[1];
+          scenes[0].setMaterials();
           
-          //scene.remove( meshGround );
-
         }
 
         function onDocumentMouseDown(event) {
