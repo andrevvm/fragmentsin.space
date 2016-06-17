@@ -1,0 +1,8 @@
+*DS_STORE
+docs/
+editor/
+examples/
+node_modules/
+src/
+test/
+utils/
