@@ -36,7 +36,7 @@ THREE.ShaderLib[ 'mirror' ] = {
 		"varying vec4 mirrorCoord;",
 
 		"float blendOverlay(float base, float blend) {",
-			"return( base < 0.5 ? ( 2.0 * base * blend ) : (1.0 - 2.0 * ( 1.0 - base ) * ( 1.0 - blend ) ) );",
+			"return( base * blend );",
 		"}",
 
 		"void main() {",

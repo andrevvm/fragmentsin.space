@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>MARBLEWORLD</title>
+    <title>Fragments in Space</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
@@ -13,41 +13,122 @@
       }
     </style>
 
-    <script type="text/javascript" src="js/timbre.js"></script>
-    <script type="text/javascript" src="js/timbre_mouse.js"></script>
-    
-
-  </head>
-
-  <body>
-
-    <script src="build/three.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r79/three.min.js"></script>
     <script src="js/loaders/BinaryLoader.js"></script>
-
-    <script src="js/ThreeCSG.js"></script>
-
     <script src="js/Detector.js"></script>
-    <script src="js/libs/stats.min.js"></script>
-
+<!--     <script src="js/libs/stats.min.js"></script>
+ -->
     <script src="js/Mirror.js"></script>
 
-    <script src="js/postprocessing/EffectComposer.js"></script>
-    <script src="js/postprocessing/RenderPass.js"></script>
-    <script src="js/postprocessing/MaskPass.js"></script>
-    <script src="js/postprocessing/ShaderPass.js"></script>
+    <script type="text/javascript" src="js/timbre.js"></script>
+    <script type="text/javascript" src="js/timbre_mouse.js"></script>
 
+    <link href="https://fonts.googleapis.com/css?family=Space+Mono" rel="stylesheet">
+    <script   src="https://code.jquery.com/jquery-3.1.0.slim.min.js"   integrity="sha256-cRpWjoSOw5KcyIOaZNo4i6fZ9tKPhYYb6i5T9RSVJG8="   crossorigin="anonymous"></script>
+
+    <style>
+    .overlay {
+      box-sizing: border-box;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      background: rgba(0,0,0,0.9);
+      padding: 7vmin;
+      z-index: 0;
+      opacity: 0;
+      cursor: default;
+      transition: opacity 100ms ease-in-out, z-index 1ms 400ms;
+    }
+
+    .overlay.show {
+      z-index: 11;
+      opacity: 1;
+      transition: opacity 400ms ease-in-out, z-index 0ms;
+    }
+
+    .overlay.show p {
+      opacity: 1;
+      transition: opacity 400ms 200ms ease-in-out;
+    }
+
+    .overlay p {
+      margin-top: 0;
+      font-family: "Space Mono", Courier, monospace;
+      color: #f6f6f6;
+      font-size: 3vmin;
+      max-width: 70%;
+      opacity: 0;
+      transition: opacity 200ms ease-in-out;
+    }
+
+    canvas {
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 500ms ease-in-out;
+    }
+
+    label {
+      box-sizing: border-box;
+      position: absolute;
+      z-index: 20;
+      top: 4vmin;
+      right: 4vmin;
+      width: 24px;
+      height: 24px;
+      border-radius: 12px;
+      border: 2px solid #959595;
+      cursor: pointer;
+    }
+
+    label:hover {
+      opacity: 1;
+    }
+
+    .fader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .ready canvas,
+    .loading canvas {
+      opacity: 1;
+    }
+    </style>
+    
+  </head>
+
+  <body class="loading">
   
     <script type="text/javascript">
 
+    $(function() {
+      $("label").click(function() {
+        $(".overlay").toggleClass("show");
+      });
+
+      $(".overlay").click(function(e) {
+
+        if(e.target.localName === "div") {
+          $(this).removeClass("show");
+        }
+        
+      });
+    });
+
     setTimeout(function() {
 
-      var cutoff = T("sin", {freq:"15000ms", mul:50, add:80}).kr();
+      // var cutoff = T("sin", {freq:"15000ms", mul:50, add:80}).kr();
 
-      var VCO = T("tri", {freq:8}).set("mul", 0.4);
-      var VCF = T("lpf", {cutoff:cutoff, Q:30}, VCO);
+      // var VCO = T("tri", {freq:8}).set("mul", 0.4);
+      // var VCF = T("lpf", {cutoff:cutoff, Q:30}, VCO);
 
-      T("reverb", {room:2.0, damp:0.6, mix:0.85}, VCF).play();
+      // T("reverb", {room:2.0, damp:0.6, mix:0.85}, VCF).play();
 
       var synth = T("SynthDef").play();
 
@@ -69,8 +150,10 @@
 
       T("mouse").on("mousedown", function(e) {
 
-          note = Math.round(Math.random() * (70 - 50) + 50);
-          synth.noteOn(note);
+          if(e.target.localName === "canvas") {
+            note = Math.round(Math.random() * (70 - 50) + 50);
+            synth.noteOn(note);
+          }
   
       }).on("mouseup", function(e) {
 
@@ -79,7 +162,7 @@
       }).start();
 
     }, 2000);
-      
+
     </script>    
 
     <script type="x-shader/x-vertex" id="sem-vs">
@@ -138,12 +221,15 @@
       var blockMirror, groundMirror;
 
       var time = 0;
+      var mag = 0;
 
       var lastTimeMsec= null;
       var nowMsec = null;
 
       var windowHalfX = window.innerWidth / 2;
       var windowHalfY = window.innerHeight / 2;
+
+      var loadMeshes, loadMesh, egh;
 
       init();
       animate();
@@ -173,11 +259,9 @@
         scene.add( mirrorCubeCamera );
 
         var fogs = [
-          0xc5fffe,
-          0xffc6c6,
-          0xff9b78,
-          0xc5fff1,
-          0x333333,
+          0xBDE3F4,
+          0x1A1F21,
+          0xf2eedd
         ]
 
         scene.fog = new THREE.Fog( 0xFFFFFF, 1, 25000 );
@@ -241,23 +325,83 @@
 
         var objectTextures = [
           
-          textureLoader.load("textures/copper.jpg"),
-          textureLoader.load("textures/black_granite.jpg"),
-          textureLoader.load("textures/black_marble.jpg"),
-          textureLoader.load("textures/dark_green_marble.jpg"),
-          textureLoader.load("textures/grey_marble.jpg"),
-          textureLoader.load("textures/grey_marble2.jpg"),
-          textureLoader.load("textures/ice_marble.jpg"),
-          textureLoader.load("textures/pink_marble.jpg"),
-          textureLoader.load("textures/purple_marble.jpg"),
-          textureLoader.load("textures/red_marble.jpg"),
+          textureLoader.load("textures/dark_green_marble.jpg", loadEnqueue),
+          textureLoader.load("textures/green_granite.jpg", loadEnqueue),
+          textureLoader.load("textures/red_marble.jpg", loadEnqueue),
+          textureLoader.load("textures/travertine.jpg", loadEnqueue)
 
         ];
+
+        var customShapeTextures = [
+          textureLoader.load("textures/dark_green_marble.jpg",loadEnqueue),
+          textureLoader.load("textures/green_granite.jpg",loadEnqueue),
+          textureLoader.load("textures/red_marble.jpg",loadEnqueue),
+          textureLoader.load("textures/travertine.jpg",loadEnqueue)
+        ];
+
+        var loaded = 0;
+
+        scenePreload();
+
+        var loadQueue = [];
+        function loadEnqueue() {
+          loadQueue.push(textureLoaded);
+        }
+
+        setInterval(function() {
+          if(loadQueue.length > 0) {
+            (loadQueue.shift())();
+          }
+        }, 100);
+
+        function textureLoaded() {
+          loaded++;
+
+          if(loaded === 8) {
+            $('body').removeClass('loading');
+            document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+            document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+            document.addEventListener( 'touchend', onDocumentMouseDown, false );
+            document.addEventListener( 'wheel', onDocumentWheel, false );
+            
+            setTimeout(function() {
+              sceneInit(comp);
+            }, 400);
+
+            setTimeout(function() {
+              $('body').addClass('ready');
+            }, 600);
+
+            return false;
+          }
+
+          //egh.geometry = null;
+          //egh.geometry = loadMeshes[loaded].geometry;
+
+          scene.remove(egh);
+
+          egh = new THREE.EdgesHelper( loadMeshes[loaded], fogs[1] );
+          egh.matrixAutoUpdate = true;
+          egh.rotation.y = Math.PI / 4;
+          //egh.rotation.x = Math.PI / (2 * loaded);
+          egh.material.linewidth = 2;
+
+          scene.add(egh);
+  
+        }
+        
 
         for(var b = 0; b < objectTextures.length; b++) {
           objectTextures[b].anisotropy = 5;
           objectTextures[b].wrapS = objectTextures[b].wrapT = THREE.MirroredRepeatWrapping;
-          objectTextures[b].repeat.set( 2, 1.5 );
+          objectTextures[b].repeat.set( 1, 1 );
+        }
+
+        for(var b = 0; b < customShapeTextures.length; b++) {
+          customShapeTextures[b].anisotropy = 5;
+          customShapeTextures[b].wrapS = objectTextures[b].wrapT = THREE.MirroredRepeatWrapping;
+          customShapeTextures[b].repeat.set( 1 / 1200, 1 / 1200 );
+          customShapeTextures[b].offset.set( 0.1, 0.1 );
         }
 
         var path = "textures/skybox/";
@@ -284,13 +428,13 @@
           
         } );
 
-        var goldMaterial = new THREE.MeshStandardMaterial( { 
-          color: 0xFFC59F, 
-          map: objectTextures[0],
-          roughness: 0.6, 
-          metalness: 0.5,
-          envMap: refractionCube 
-        } );
+        // var goldMaterial = new THREE.MeshStandardMaterial( { 
+        //   color: 0xFFC59F, 
+        //   map: objectTextures[0],
+        //   roughness: 0.6, 
+        //   metalness: 0.5,
+        //   envMap: refractionCube 
+        // } );
 
         var glassMaterial = new THREE.MeshPhongMaterial( { 
             color: 0x57BBA3,
@@ -306,46 +450,45 @@
           } )
 
         var objectMaterials = [
-          goldMaterial,
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[0] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[1] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[2] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[3] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[4] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[5] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[6] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[7] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[8] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[9] } )
+          new THREE.MeshPhongMaterial( { color: 0xEB6584 } ),
+          new THREE.MeshPhongMaterial( { color: 0xE6543B } ),
+        ];
+
+        var customShapeMaterials = [
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: customShapeTextures[0] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: customShapeTextures[1] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: customShapeTextures[2] } ),
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: customShapeTextures[3] } ),
+          new THREE.MeshPhongMaterial( { color: 0xEB6584 } ),
+          new THREE.MeshPhongMaterial( { color: 0xE6543B } ),
         ];
 
         var blockMaterials = [
+          objectMaterials[0],
           objectMaterials[1],
           objectMaterials[2],
+          objectMaterials[3],
           objectMaterials[4],
           objectMaterials[5],
-          objectMaterials[6],
-          objectMaterials[7],
-          objectMaterials[8],
-          objectMaterials[9],
         ]
 
         shuffle(blockMaterials);
         shuffle(objectMaterials);
+        shuffle(customShapeMaterials);
 
-        groundMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x373B3E } );
+        groundMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x81A0BD } );
 
-        blockMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x373B3E } );
+        blockMirror = new THREE.Mirror( renderer, camera, { clipBias: 0.3, textureWidth: 2048, textureHeight: 2048, color: 0x414042 } );
 
         var groundMaterials = [
+          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[0] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[1] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[2] } ),
           new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[3] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[4] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[5] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[6] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[7] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[8] } ),
-          new THREE.MeshPhongMaterial( { color: 0xffffff, map: objectTextures[9] } ),
           groundMirror.material
         ]
 
@@ -368,16 +511,16 @@
         // texture4.repeat.set( 1, 1 );
 
         var ground = new THREE.BoxGeometry( 1000, 1000, 25 );
-        ground.translate(0,0,-100);
 
         var meshGround = new THREE.Mesh( ground, groundMaterials[0] );
-        meshGround.add( groundMirror );
 
+        meshGround.position.set(0,-200,0);
 
         meshGround.rotation.x = - Math.PI / 2;
         meshGround.rotation.z = - Math.PI / 4;
         meshGround.receiveShadow = true;
-        scene.add( meshGround );
+
+        meshGround.add( groundMirror );
 
         var boxShapes =  [
           new THREE.BoxGeometry( 800, 450, 80 ),
@@ -387,29 +530,42 @@
         shuffle(boxShapes);
 
         var scenes = [
-
             {
               objects: {
                 block: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 800, 450, 30 ) ),
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 900, 450, 50 ) ),
                   type: "block"
                 },
+                block2: {
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 600, 450, 50 ) ),
+                  type: "block"
+                },
+                cylinder: {
+                  mesh: new THREE.Mesh( new THREE.CylinderGeometry(8, 8, 500, 50) ),
+                  type: "object"
+                },
                 sphere: {          
-                  mesh: new THREE.Mesh( new THREE.SphereGeometry( 90, 40, 40 ) ),
+                  mesh: new THREE.Mesh( new THREE.SphereGeometry( 70, 40, 40 ) ),
                   type: "object"
                 },
-                hole: {          
-                  mesh: new THREE.Mesh( new THREE.CylinderGeometry( 100, 100, 150, 120 ) ),
-                  type: "object"
-                },
-                cone: {
-                  mesh: new THREE.Mesh( new THREE.ConeGeometry( 70, 180, 40 ) ),
-                  type: "object"
-                },
-                holeWall: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 0, 0, 0 ) ),
-                  type: "object"
-                }
+                
+              },
+              customShape: function() {
+                var brokeShape = new THREE.Shape();
+                brokeShape.moveTo( 0, 0 );
+                brokeShape.lineTo( 0, 500 );
+                brokeShape.lineTo( -600, 500);
+                brokeShape.lineTo( -600, 600);
+                brokeShape.lineTo( 300, 600);
+                brokeShape.lineTo( 300, 0);
+
+                var extrudeSettings = { amount: 70, bevelEnabled: false, material: 0, extrudeMaterial: 0 };
+
+                var geometry = new THREE.ExtrudeGeometry( brokeShape, extrudeSettings );
+
+                var mesh = new THREE.Mesh( geometry );
+
+                return mesh;
               },
               setPositions: function() {
 
@@ -417,178 +573,125 @@
                   return false;
                 }
 
-                this.objects.sphere.mesh.geometry.translate(320,140,0);
+                this.objects.block.mesh.rotation.y = (Math.PI / 4);
+                this.objects.block.mesh.position.set(300,-300,-100);
 
-                this.objects.hole.mesh.geometry.translate(320,25,0);
-                this.objects.hole.mesh.position.set(0, 185, 0);
-                this.objects.hole.mesh.rotation.y = 0.9;
-                this.objects.hole.mesh.rotateX(Math.PI / 2);
+                this.objects.block2.mesh.rotation.y = -(Math.PI / 4);
+                this.objects.block2.mesh.position.set(-200,-25,150);
+
+                this.objects.cylinder.mesh.geometry.translate(0,0,0);
+                this.objects.cylinder.mesh.position.set(-200, 240, 550);
+                //this.objects.cylinder.mesh.rotation.x = Math.PI;
+                //this.objects.cylinder.mesh.rotateZ(-5);
+                this.objects.cylinder.mesh.rotateY(-0.9);
+                this.objects.cylinder.mesh.rotateZ(-0.2);
+
+                this.objects.sphere.mesh.geometry.translate(-40, 230, 0);
+                this.objects.sphere.mesh.rotation.y = 2.5;
+                this.objects.sphere.mesh.rotation.x = 0.4;
+                this.objects.sphere.mesh.position.set(170,250,150);
                 
-                this.objects.block.mesh.rotation.y = - (Math.PI / 4) * 3;
-                this.objects.block.mesh.position.set(300,138,-300);
-
-                this.objects.cone.mesh.position.set(240, 200, 240);
-                this.objects.cone.mesh.rotation.z = - Math.PI / 10;
-                this.objects.cone.mesh.rotation.x = Math.PI;
 
                 this.rendered = true;
               },
               setMaterials: function() {
-                
+
                 this.objects.block.mesh.geometry = null;
-                this.objects.block.mesh.geometry = boxShapes[0];
+                this.objects.block.mesh.geometry = this.customShape().geometry;         
+                this.objects.block.mesh.material = customShapeMaterials[0];
+                this.objects.block.mesh.material.needsUpdate = true;
              
-                this.objects.block.mesh.material = blockMaterials[0];
+                this.objects.block2.mesh.material = blockMaterials[0];
+
+                meshGround.material = groundMaterials[0];
+                this.objects.cylinder.mesh.material = objectMaterials[1];
+
                 this.objects.sphere.mesh.material = objectMaterials[0];
-                this.objects.cone.mesh.material = objectMaterials[1];
+                
 
                 for(var key in this.objects) {
                   this.objects[key].mesh.castShadow = true;
                   this.objects[key].mesh.receiveShadow = true;
                 }
 
-                var block = new ThreeBSP( this.objects.block.mesh );
-                var hole = new ThreeBSP( this.objects.hole.mesh );
-
-                holeWall = block.subtract(hole);
-                holeWall = holeWall.toMesh( blockMaterials[0] );
-                //holeWall.geometry.computeVertexNormals();
-                scene.add( holeWall );
                 
               },
               postInit: function() {
-                scene.remove(this.objects.block.mesh);
-                scene.remove(this.objects.hole.mesh);
+                
+
               },
               animations: function() {
 
-                this.objects.sphere.mesh.position.y = 0 + Math.sin(time/500) * 50;
-                this.objects.sphere.mesh.rotation.y += 0.01;
-                this.objects.cone.mesh.rotation.y += 0.02;
-                this.objects.cone.mesh.rotation.x += 0.01;
-                this.objects.cone.mesh.position.y = 180 + Math.sin(time/500 - 280) * 120;
+                this.objects.cylinder.mesh.rotation.y += 0.01;
+                this.objects.cylinder.mesh.position.y = 180 + Math.sin(time/1000) * 20;
+
+                //this.objects.sphere.mesh.rotation.y += 0.01;
+                this.objects.sphere.mesh.rotation.y += 0.005;
+                this.objects.sphere.mesh.rotation.x += 0.01;
+                
+
               },
 
               sceneCleanup: function() {
-                scene.remove(holeWall);
+
               },
               rendered: false
 
             },
             {
               objects: {
-                block1: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 300, 400, 30 ) ),
+                block: {
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 900, 450, 50 ) ),
                   type: "block"
                 },
                 block2: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 300, 400, 30 ) ),
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 80, 500, 280 ) ),
                   type: "block"
                 },
                 block3: {
-                  mesh: new THREE.Mesh ( new THREE.BoxGeometry( 300, 400, 30) ),
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 160, 600, 160 ) ),
                   type: "block"
                 },
-                rod: {
-                  mesh: new THREE.Mesh( new THREE.CylinderGeometry(8, 8, 400, 50) ),
+                block4: {
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 600, 450, 50 ) ),
+                  type: "block"
+                },
+                sphere: {          
+                  mesh: new THREE.Mesh( new THREE.SphereGeometry( 70, 40, 40 ) ),
                   type: "object"
                 },
-                sphere: {
-                  mesh: new THREE.Mesh( new THREE.SphereGeometry(60, 40, 40) ),
-                  type: "object"
-                }
                 
               },
-              brokeShape: function() {
-                var brokeShape = new THREE.Shape();
-                brokeShape.moveTo( 0, 90 );
-                brokeShape.lineTo( 0, 300 );
-                brokeShape.lineTo( 300, 300);
-                brokeShape.lineTo( 300, 0);
-                brokeShape.lineTo( 250, 20);
-                brokeShape.lineTo( 220, 36);
-                brokeShape.lineTo( 195, 42);
-                brokeShape.lineTo( 150, 58);
-                brokeShape.lineTo( 110, 63);
-                brokeShape.lineTo( 80, 78);
-                brokeShape.lineTo( 40, 82);
-
-                var extrudeSettings = { amount: 20, bevelEnabled: false, material: 0, extrudeMaterial: 0 };
-
-                var geometry = new THREE.ExtrudeGeometry( brokeShape, extrudeSettings );
-
-                var mesh = new THREE.Mesh( geometry );
-
-                return mesh;
-              },
-              brokeShape2: function() {
-                var brokeShape = new THREE.Shape();
-                brokeShape.moveTo( 0, 90 );
-                brokeShape.lineTo( 0, -150 );
-                brokeShape.lineTo( 300, -150);
-                brokeShape.lineTo( 300, 0);
-                brokeShape.lineTo( 250, 20);
-                brokeShape.lineTo( 220, 36);
-                brokeShape.lineTo( 195, 42);
-                brokeShape.lineTo( 150, 58);
-                brokeShape.lineTo( 110, 63);
-                brokeShape.lineTo( 80, 78);
-                brokeShape.lineTo( 40, 82);
-
-                var extrudeSettings = { amount: 20, bevelEnabled: false, material: 0, extrudeMaterial: 0 };
-
-                var geometry = new THREE.ExtrudeGeometry( brokeShape, extrudeSettings );
-
-                var mesh = new THREE.Mesh( geometry );
-
-                return mesh;
-              },
               setPositions: function() {
+
                 if(this.rendered === true) {
                   return false;
                 }
-                this.objects.block1.mesh.position.set(280, 240, 0);
-                this.objects.block1.mesh.rotation.x = - Math.PI / 6;
-                this.objects.block1.mesh.rotation.y = -1;
 
-                this.objects.block2.mesh.position.set(-350, 240, 50);
-                this.objects.block2.mesh.rotation.x = - Math.PI / 12;
-                this.objects.block2.mesh.rotation.y = Math.PI / 3;
-
-                this.objects.block3.mesh.rotateX(Math.PI);
-                this.objects.block3.mesh.rotateZ(-Math.PI / 2);
-                this.objects.block3.mesh.rotateY(Math.PI / 2);
-                //this.objects.block3.mesh.rotation. = 0.5;
-                this.objects.block3.mesh.position.set(250,-90,0);
-
-                this.objects.rod.mesh.position.set(0,200,0);
-                this.objects.rod.mesh.rotation.x = Math.PI / 6;
-                this.objects.rod.mesh.rotation.z = Math.PI / 10;
-
+                this.objects.sphere.mesh.geometry.translate(150,150,180);
+                this.objects.sphere.mesh.rotation.z = 250;
+                this.objects.sphere.mesh.position.set(0,150,-200);
                 
-                this.objects.sphere.mesh.geometry.translate(210,60,120);
-                
-                this.objects.sphere.mesh.position.set(-50, 240, 0);
-                
+                this.objects.block.mesh.rotation.y = - (Math.PI / 4) * 3;
+                this.objects.block.mesh.position.set(350,-20,-50);
+
+                this.objects.block2.mesh.rotation.y = (Math.PI / 4);
+                this.objects.block2.mesh.position.set(-50,60,350);
+
+                this.objects.block3.mesh.rotation.y = (Math.PI / 4);
+                this.objects.block3.mesh.position.set(0,200,-300);
+
+                this.objects.block4.mesh.rotation.y = -(Math.PI / 4);
+                this.objects.block4.mesh.position.set(-300,100,-200);
+
                 this.rendered = true;
               },
               setMaterials: function() {
-                
-                var uvs = this.objects.block1.mesh.geometry.faceVertexUvs;
-                this.objects.block1.mesh.geometry = null;
-                this.objects.block1.mesh.geometry = this.brokeShape().geometry;
-                this.objects.block1.mesh.material = blockMaterials[0];
-
-                this.objects.block1.mesh.material.map.repeat.set( 1 / 500, 1 / 500 );
-                this.objects.block1.mesh.material.map.offset.set( 0.1, 0.5 );
-
-                this.objects.block3.mesh.geometry = null;
-                this.objects.block3.mesh.geometry = this.brokeShape2().geometry;         
-                this.objects.block3.mesh.material = blockMaterials[0];
-                this.objects.block3.mesh.material.needsUpdate = true;     
-
+             
+                this.objects.block.mesh.material = objectMaterials[0];
                 this.objects.block2.mesh.material = blockMaterials[1];
-                this.objects.rod.mesh.material = blockMaterials[1];
+                this.objects.block3.mesh.material = blockMaterials[2];
+                this.objects.block4.mesh.material = blockMaterials[0];
                 this.objects.sphere.mesh.material = objectMaterials[1];
 
                 for(var key in this.objects) {
@@ -596,101 +699,23 @@
                   this.objects[key].mesh.receiveShadow = true;
                 }
 
-              },
-              postInit: function() {
-
-              },
-              animations: function() {
-                this.objects.block1.mesh.position.y = 100 + Math.sin(time/500 - 280) * 20;
-                this.objects.block2.mesh.position.y = 240 + Math.sin(time/500) * 20;
-
-                this.objects.rod.mesh.rotation.y += 0.01;
-
-                this.objects.sphere.mesh.rotation.y -= 0.005;
-                this.objects.sphere.mesh.rotation.z -= 0.005;
-                // this.objects.block1.mesh.rotation.z = Math.PI / 20 + Math.cos(time/1000) / 1.5;
-                // this.objects.block1.mesh.rotation.x = Math.PI / 20 - Math.sin(time/1000) / 3;
-                // this.objects.block1.mesh.rotation.y = Math.PI / 2 - Math.sin(time/1000) / 2;
-              },
-              sceneCleanup: function() {
-                this.objects.block1.mesh.material.map.repeat.set( 1, 1 );
-                this.objects.block1.mesh.material.map.offset.set( 0, 0 );
-              },
-              rendered: false
-
-            },
-            {
-              objects: {
-
-                block1: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 500, 600, 10 ) ),
-                  type: "block"
-                },
-
-                cylinder: {
-                  mesh: new THREE.Mesh( new THREE.CylinderGeometry(50, 50, 300, 50) ),
-                  type: "object"
-                },
-
-                cylinder2: {
-                  mesh: new THREE.Mesh( new THREE.CylinderGeometry(8, 8, 500, 50) ),
-                  type: "object"
-                },
                 
               },
-              setPositions: function() {
-                if(this.rendered === true) {
-                  return false;
-                }
-                this.objects.block1.mesh.position.set(350, -50, 50);
-                this.objects.block1.mesh.rotation.x = - Math.PI / 6;
-                this.objects.block1.mesh.rotation.y = Math.PI / 1.5;
-
-                this.objects.cylinder.mesh.position.set(0, -37, 50);
-                this.objects.cylinder.mesh.rotation.x = Math.PI / 2;
-                this.objects.cylinder.mesh.rotation.z = Math.PI / 3;
-
-                this.objects.cylinder2.mesh.position.set(-80,150,30);
-                this.objects.cylinder2.mesh.rotation.x = Math.PI / 25;
-                this.objects.cylinder2.mesh.rotation.z = Math.PI / 15;
-                this.objects.cylinder2.mesh.rotation.y = Math.PI / 8;
-                
-                this.rendered = true;
-              },
-              setMaterials: function() {
-                             
-                this.objects.block1.mesh.material = glassMaterial;
-                this.objects.cylinder.mesh.material = blockMaterials[1];
-                this.objects.cylinder2.mesh.material = objectMaterials[0];
-
-                for(var key in this.objects) {
-                  this.objects[key].mesh.castShadow = true;
-                  this.objects[key].mesh.receiveShadow = true;
-                }
-
-                this.objects.block1.mesh.receiveShadow = false;
-
-                this.objects.block1.mesh.visible = false;
-                mirrorCubeCamera.updateCubeMap( renderer, scene );
-                mirrorCubeCamera.position.copy( this.objects.block1.mesh.position );
-                mirrorCubeCamera.position.x = 500;
-                this.objects.block1.mesh.visible = true;
-
-              },
               postInit: function() {
+                
 
               },
               animations: function() {
 
-                this.objects.cylinder.mesh.rotateY(Math.PI * 0.0005 - Math.cos(time/1000) / -28);
-                this.objects.cylinder.mesh.position.z = -220 - Math.sin(time/1000) * 180;
-                this.objects.cylinder.mesh.position.x = -220 - Math.sin(time/1000) * 90;
+                this.objects.block3.mesh.position.y = 250 + Math.sin(time/500) * 20;
+                this.objects.block4.mesh.position.y = 150 + Math.sin(time/500 - 580) * 20;
 
-                //this.objects.cylinder2.mesh.position.y = 300 - Math.sin(time/500) * 50;
+                this.objects.sphere.mesh.position.y = 460 - Math.sin(time/1000) * 150;
+                this.objects.sphere.mesh.rotation.y += 0.01;
+                //this.objects.sphere.mesh.rotation.z = 20;
 
-                //this.objects.cylinder2.mesh.rotation.y += 0.01;
-                //this.objects.cylinder.mesh.rotation.z += 0.01;
               },
+
               sceneCleanup: function() {
 
               },
@@ -701,7 +726,7 @@
               objects: {
 
                 block1: {
-                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 400, 500, 30 ) ),
+                  mesh: new THREE.Mesh( new THREE.BoxGeometry( 380, 550, 30 ) ),
                   type: "block"
                 },
 
@@ -711,14 +736,14 @@
                 },
 
                 cone1: {
-                  mesh: new THREE.Mesh( new THREE.CylinderGeometry( 0, 120, 300, 50 ) ),
+                  mesh: new THREE.Mesh( new THREE.CylinderGeometry( 0, 160, 420, 50 ) ),
                   type: "object"
                 },
 
-                sphere1: {
-                  mesh: new THREE.Mesh( new THREE.SphereGeometry(120, 40, 40 ) ),
-                  type: "object"
-                }
+                // sphere1: {
+                //   mesh: new THREE.Mesh( new THREE.SphereGeometry(120, 40, 40 ) ),
+                //   type: "object"
+                // }
 
                 
                 
@@ -727,23 +752,23 @@
                 if(this.rendered === true) {
                   return false;
                 }
-                this.objects.block1.mesh.position.set(120, 120, -350);
+                this.objects.block1.mesh.position.set(-50, 100, -250);
                 this.objects.block1.mesh.rotateX(-0.15);
-                this.objects.block1.mesh.rotateZ(0.45);
-                this.objects.block1.mesh.rotation.y = - 3.6;
+                this.objects.block1.mesh.rotateZ(0.55);
+                this.objects.block1.mesh.rotation.y = - 3.5;
 
-                this.objects.block2.mesh.position.set(500, -30, 130);
+                this.objects.block2.mesh.position.set(500, -130, 130);
                 this.objects.block2.mesh.rotation.z = -2.5;
                 this.objects.block2.mesh.rotation.x = 0.3;
 
-                this.objects.cone1.mesh.position.set(-250, 120, 120);
+                this.objects.cone1.mesh.position.set(-250, 20, 180);
                 // this.objects.cone1.mesh.rotation.x = Math.PI / 2;
                 // this.objects.cone1.mesh.rotation.y = Math.PI / 2;
-                this.objects.cone1.mesh.rotation.z = -2;
-                this.objects.cone1.mesh.rotation.y = 0.25;
+                this.objects.cone1.mesh.rotateZ(-2.25);
+                //this.objects.cone1.mesh.rotation.y = 0.45;
 
-                this.objects.sphere1.mesh.geometry.translate(-120,0,150);
-                this.objects.sphere1.mesh.position.set(0,0,150);
+                // this.objects.sphere1.mesh.geometry.translate(-120,0,150);
+                // this.objects.sphere1.mesh.posfition.set(0,0,150);
                 
                 this.rendered = true;
               },
@@ -754,9 +779,7 @@
 
                 this.objects.block2.mesh.material = blockMaterials[0];
                 
-                this.objects.cone1.mesh.material = objectMaterials[0];
-
-                this.objects.sphere1.mesh.material = objectMaterials[1];
+                this.objects.cone1.mesh.material = objectMaterials[1];
 
                 for(var key in this.objects) {
                   this.objects[key].mesh.castShadow = true;
@@ -768,11 +791,9 @@
               },
               animations: function() {
 
-                this.objects.block1.mesh.position.y = 250 + Math.sin(time/500 - 580) * 20;
+                this.objects.block1.mesh.position.y = 220 + Math.sin(time/500 - 580) * 20;
                 this.objects.cone1.mesh.rotation.x += 0.01;
-                this.objects.cone1.mesh.position.y = 250 + Math.sin(time/500 - 280) * 20;
-                this.objects.sphere1.mesh.position.y = 240 + Math.sin(time/500) * 20;
-                this.objects.sphere1.mesh.rotation.x += 0.01;
+                this.objects.cone1.mesh.position.y = 250 + Math.sin(time/500 - 240) * 20;
 
               },
               sceneCleanup: function() {
@@ -783,7 +804,8 @@
             },
         ];
 
-        var comp = scenes[3];
+        shuffle(scenes);
+        var comp = scenes[0];
 
         // RENDERER
 
@@ -797,10 +819,16 @@
 
         //Mesh animations
         onRenderFcts.push(function(){
+
           time += 10;
   
           for(var i = 0; i < scenes.length; i++) {
             scenes[i].animations();
+            for(var key in scenes[i].objects) {
+              if(scenes[i].objects[key].type === "object") {
+                scenes[i].objects[key].mesh.rotation.y += mag;
+              }
+            }
           }
           
         });
@@ -810,18 +838,51 @@
         // stats = new Stats();
         // container.appendChild( stats.dom );
 
-        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-        document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-
         for(var i = 0; i < scenes.length; i++) {
           addObjects(scenes[i]);
           scenes[i].setPositions();
           hideObjects(scenes[i]);
         }
 
-        sceneInit(comp);
+        function scenePreload() {
+
+          loadMeshes = [
+            new THREE.Mesh( new THREE.BoxGeometry( 120, 120, 60 ) ),
+            new THREE.Mesh( new THREE.SphereGeometry( 80, 8, 8 ) ),
+            new THREE.Mesh( new THREE.ConeGeometry( 80, 140, 8 ) ),
+            new THREE.Mesh( new THREE.CylinderGeometry( 80, 80, 120, 8 ) ),
+            new THREE.Mesh( new THREE.BoxGeometry( 120, 60, 120 ) ),
+            new THREE.Mesh( new THREE.CylinderGeometry( 80, 0, 120, 8 ) ),
+            new THREE.Mesh( new THREE.BoxGeometry( 120, 120, 120 ) ),
+            new THREE.Mesh( new THREE.ConeGeometry( 80, 140, 8 ) ), 
+          ]
+          shuffle(loadMeshes);
+          loadMesh = loadMeshes[0];
+
+          shuffle(fogs);
+
+          egh = new THREE.EdgesHelper( loadMesh, fogs[1] );
+          egh.matrixAutoUpdate = true;
+          egh.rotation.y = Math.PI / 4;
+          egh.material.linewidth = 2;
+          scene.add( egh );
+
+          renderer.setClearColor( fogs[0] );
+
+          var r = (fogs[0] & (0xff << 16)) >>> 16;
+          var g = (fogs[0] & (0xff << 8)) >>> 8;
+          var b = (fogs[0] & 0xff);
+
+          console.log(r,g,b);
+
+          $('body').css('background','rgba('+r+','+g+','+b+',1)');
+
+        }
 
         function sceneInit(s) {
+          scene.remove(loadMesh);
+          scene.remove(egh);
+          scene.add( meshGround );
           setMaterials(s);
           showObjects(s);
         }
@@ -849,12 +910,14 @@
           shuffle(objectMaterials);
           shuffle(blockMaterials);
           shuffle(groundMaterials);
-          shuffle(fogs);
+          
           shuffle(boxShapes);
 
-          meshGround.material = groundMaterials[0];
-
-          renderer.setClearColor( fogs[0] );
+          for(var key in s.objects) {
+            if(s.objects[key].type === "object") {
+              s.objects[key].mesh.add(blockMirror);
+            }
+          }
 
           s.setMaterials();
           
@@ -862,11 +925,16 @@
 
         function onDocumentMouseDown(event) {
 
-          hideObjects(comp);
-          comp.sceneCleanup();
-          shuffle(scenes);
-          comp = scenes[0];
-          sceneInit(comp);
+          if(event.target.localName === "canvas") {
+            shuffle(fogs);
+            renderer.setClearColor( fogs[0] );
+
+            hideObjects(comp);
+            comp.sceneCleanup();
+            shuffle(scenes);
+            comp = scenes[0];
+            sceneInit(comp);
+          }
 
         }
 
@@ -878,6 +946,11 @@
         mouseX = ( event.clientX - windowHalfX );
         mouseY = ( event.clientY - windowHalfY );
 
+      }
+
+      function onDocumentWheel(event) {
+        event.preventDefault();
+        //mag = event.deltaY * 0.0008;
       }
 
       function animate() {
@@ -946,6 +1019,20 @@
       }
 
     </script>
+
+    <label class="info-label"></label>
+
+    <div class="overlay">
+      <p>Fragments in Space is a digital exploration of modernist era design, inspired by the work of Luis Barragán, Ludwig Mies van der Rohe, Laszlo Maholy-Nagy and El Lissitzky. By interchanging elements from each work such as material, form and color, an infinite variety of possibilities arise resulting in contemporary interpretations of the original archive.
+      </p>
+      <p>
+      Concept and art direction by Kara Zichittella.<br/>Code and sound design by Andrew McCarthy.
+      </p>
+    </div>
+
+    <div class="fader">
+
+    </div>
 
   </body>
 </html>
